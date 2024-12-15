@@ -1,0 +1,66 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+
+# Load dataset
+try:
+    df = pd.read_csv(r"C:\Users\paruo\OneDrive\Documents\one drive documents\OneDrive\Desktop\python pprogram from vs code\fake_and_real_news.csv")
+    print("Dataset Loaded Successfully")
+except FileNotFoundError:
+    print("Dataset not found. Please check the file path.")
+    exit()
+print("Columns in the dataset:", df.columns)
+print("First few rows of data:", df.head())
+if 'Text' not in df.columns or 'label' not in df.columns:
+    print("Required columns ('Text' and 'label') not found. Please verify dataset.")
+    exit()
+df['processed_text'] = df['Text'].str.replace(r'[^a-zA-Z\s]', '', regex=True).str.lower()
+X = df['processed_text']
+y = df['label'] 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Feature extraction using CountVectorizer
+vectorizer = CountVectorizer(stop_words='english')  # Removes common words like 'the', 'is', etc.
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# Model Training 
+model = MultinomialNB()
+model.fit(X_train_vec, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test_vec)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+# Classification Report
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6, 6))
+plt.imshow(cm, interpolation='nearest', cmap='Blues')
+plt.title("Confusion Matrix")
+plt.colorbar()
+plt.xlabel('Predicted label')
+plt.ylabel('True label')
+plt.xticks([0, 1], ['Fake', 'Real'])
+plt.yticks([0, 1], ['Fake', 'Real'])
+plt.show()
+
+# Function to predict new article
+def predict_fake_news(article):
+    article = article.lower()
+    article_vec = vectorizer.transform([article])
+    prediction = model.predict(article_vec)
+    return "Real" if prediction == 1 else "Fake"
+new_article = "This is an example news article about a recent event."
+prediction = predict_fake_news(new_article)
+print(f"The news article is classified as: {prediction}")
